@@ -8,33 +8,7 @@ let options = {
   loc: true,
   range: true
 };
-/*
-let attach_missing_comments = function(node, detached_comments) {
-  // Check in detached_comments if any comment should be attached to node
-  let comments;
-  for (let i = 0; i < detached_comments.length; ++i) {
-    let current = detached_comments[i];
-    if (!("end" in current)) {
-      continue;
-    }
-    print("Attempting to place "+current.toSource());
-    if (current.end == node.start) {
-      comments = [current];
-    }
-  }
-  if (comments) {
-    if (node.comments) {
-      comments.unshift.apply(comments, node.comments);
-    }
-  } else if (node.comments) {
-    comments = node.comments;
-  }
 
-  // FIXME: Actually parse something
-  let result = new Ast.Comments(comments);
-  return result;
-};
-*/
 let to_typed_loc = function(loc, fileName) {
   if (loc == null) {
     return null;
@@ -63,7 +37,7 @@ let to_typed_ast = function(node, fileName) {
     let comments;
     if (node.comments) {
       comments = new Ast.Comments(node.comments);
-      print("This node has comments: "+node.comments.toSource());
+      print("This node has comments: "+node.comments);
     }
     switch(node.type) {
     case "Program":
@@ -250,6 +224,7 @@ let Parse = {
     // FIXME: Nicer filename
     let source = read("../../"+fileName);
     let untyped_ast = esprima.parse(source, options);
+    print(untyped_ast);
     let typed_ast = to_typed_ast(untyped_ast);
     print(typed_ast.toSource());
     return typed_ast;
