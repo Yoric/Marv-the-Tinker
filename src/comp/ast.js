@@ -27,24 +27,13 @@ Ast.SourceLocation.prototype = {
     return this.source+" ["+this.start+"-"+this.end+"]";
   }
 };
-Ast.Comments = function(comments) {
-  this.value = comments;
-};
-Ast.Comments.prototype = {
-  toString: function() {
-    let result = "";
-    for (let i = 0; i < this.value.length; ++i) {
-      let current = this.value[i];
-      if (current.type == "Block") {
-        result += "/*" + current.value + "*/\n";
-      } else if (current.type == "Line") {
-        result += "// "+current.value+"\n";
-      } else {
-        throw new Error(current.toSource());
-      }
-    }
-    return result;
-  }
+Ast.Directive = function(lines, range, type, string, key, code, name) {
+  this.type  = type;
+  this.value = string;
+  this.key = key;
+  this.code = code;
+  this.name = name;
+  this.lines = lines;
 };
 
 Ast.Node = function(loc, range, comments) {
