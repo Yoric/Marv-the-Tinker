@@ -14,6 +14,7 @@ function walk_array(array, cb) {
 }
 
 function walk_enter(obj, walker) {
+  print("Entering "+obj.type);
   if (walker && walker.enter) {
     walker.enter(obj);
   }
@@ -98,6 +99,26 @@ Ast.Expression = function(loc, range, comments) {
   return this;
 };
 Ast.Expression.prototype = new Ast.Node();
+
+Ast.Expression.Assignment = function(loc, range, comments,
+                                     operator, left, right) {
+  Ast.Expression.Call(this, loc, range, comments);
+  this.operator = operator;
+  this.left = left;
+  this.right = right;
+};
+Ast.Expression.Assignment.prototype.type = "AssignmentExpression";
+Ast.Expression.Assignment.prototype.walk = function(cb) {
+  walk_enter(this, cb.AssignmentExpression);
+  let result;
+  if ((result = this.left.walk(cb))) {
+    this.left = result;
+  }
+  if ((result = this.right.walk(cb))) {
+    this.right = result;
+  }
+  return walk_exit(this, cb.AssignmentExpression);
+};
 
 Ast.Expression.Bin = function(loc, range, comments,
                               operator, left, right) {
@@ -219,6 +240,7 @@ Ast.Statement.Block = function(loc, range, comments, body) {
 Ast.Statement.Block.prototype = new Ast.Statement();
 Ast.Statement.Block.prototype.type = "BlockStatement";
 Ast.Statement.Block.prototype.walk = function(cb) {
+  print("Walking through a block statement");
   walk_enter(this, cb.BlockStatement);
   walk_array(this.body, cb);
   return walk_exit(this, cb.BlockStatement);
@@ -272,13 +294,10 @@ Ast.Identifier.prototype.become = function(original) {
   this.info = original.info;
 };
 Ast.Identifier.prototype.walk = function(cb) {
-  if (cb.Identifier && cb.Identifier.enter) {
-    cb.Identifier.enter(this);
-  }
-  if (cb.Identifier && cb.Identifier.exit) {
-    return cb.Identifier.exit(this);
-  }
-  return null;
+  print("Walking through an identifier");
+  print(Object.keys(cb));
+  walk_enter(this, cb.Identifier);
+  return walk_exit(this, cb.Identifier);
 };
 
 Ast.Literal = function(loc, range, comments, value) {
@@ -318,6 +337,9 @@ Ast.Definition.prototype.isVar = function() {
 Ast.Definition.prototype.isConst = function() {
   return this.kind == "const";
 };
+Ast.Definition.prototype.isParam = function() {
+  return this.kind == "argument";
+};
 Ast.Definition.prototype.walk = function(cb) {
   if (cb.VariableDeclarator && cb.VariableDeclarator.enter) {
     cb.VariableDeclarator.enter(this);
@@ -349,14 +371,9 @@ Ast.Statement.Declaration.Var = function(loc, range, comments,
 Ast.Statement.Declaration.Var.prototype = new Ast.Statement.Declaration();
 Ast.Statement.Declaration.Var.prototype.type = "VariableDeclaration";
 Ast.Statement.Declaration.Var.prototype.walk = function(cb) {
-  if (cb.VariableDeclaration && cb.VariableDeclaration.enter) {
-    cb.VariableDeclaration.enter(this);
-  }
+  walk_enter(this, cb.VariableDeclaration);
   walk_array(this.declarations, cb);
-  if (cb.VariableDeclaration && cb.VariableDeclaration.exit) {
-    return cb.VariableDeclaration.exit(this);
-  }
-  return null;
+  return walk_exit(this, cb.VariableDeclaration);
 };
 
 Ast.Statement.Declaration.Fun = function(loc, range, comments,
@@ -371,23 +388,16 @@ Ast.Statement.Declaration.Fun = function(loc, range, comments,
 Ast.Statement.Declaration.Fun.prototype = new Ast.Statement.Declaration();
 Ast.Statement.Declaration.Fun.prototype.type = "FunctionDeclaration";
 Ast.Statement.Declaration.Fun.prototype.walk = function(cb) {
-  if (cb.FunctionDeclaration && cb.FunctionDeclaration.enter) {
-    cb.FunctionDeclaration.enter(this);
-  }
+  walk_enter(this, cb.FunctionDeclaration);
   let result;
-  result = this.id.walk(cb);
-  if (result) {
+  if ((result = this.id.walk(cb))) {
     this.id = result;
   }
   walk_array(this.params, cb);
-  result = this.body.walk(cb);
-  if (result) {
+  if ((result = this.body.walk(cb))) {
     this.body = result;
   }
-  if (cb.FunctionDeclaration && cb.FunctionDeclaration.exit) {
-    return cb.FunctionDeclaration.exit(this);
-  }
-  return null;
+  return walk_exit(cb.FunctionDeclaration);
 };
 
 Ast.Clause = function(loc, range, comments) {
