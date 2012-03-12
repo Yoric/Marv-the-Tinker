@@ -158,9 +158,18 @@ let to_typed_ast = function(node, fileName) {
     case "Function":
       {
         let params = loop(node.params);
+        params.forEach(
+          function(param) {
+            param.binder = true;
+          }
+        );
+        let id = loop(node.id);
+        if (id) {
+          id.binder = true;
+        }
         let body = loop(node.body);
         return new Ast.Function(loc, range, comments,
-                                node.id,
+                                id,
                                 params, body,
                                 node.generator, node.expression);
       }
@@ -250,7 +259,15 @@ let to_typed_ast = function(node, fileName) {
     case "FunctionDeclaration":
       {
         let id = loop(node.id);
+        if (id) {
+          id.binder = true;
+        }
         let params = loop(node.params);
+        params.forEach(
+          function(param) {
+            param.binder = true;
+          }
+        );
         let body = loop(node.body);
         let meta = loop(node.meta);
         return new Ast.Statement.Declaration.Fun(loc, range, comments,
@@ -301,7 +318,15 @@ let to_typed_ast = function(node, fileName) {
     case "FunctionExpression":
       {
         let id = loop(node.id);
+        if (id) {
+          id.binder = true;
+        }
         let params = loop(node.params);
+        params.forEach(
+          function(param) {
+            param.binder = true;
+          }
+        );
         let body = loop(node.body);
         return new Ast.Expression.Function(loc, range, comments,
                                            id, params, body,
@@ -321,6 +346,7 @@ let to_typed_ast = function(node, fileName) {
       }
     case "Identifier":
       {
+        print("Identifier name: "+node.name);
         return new Ast.Identifier(loc, range, comments, node.name);
       }
     case "Literal":
