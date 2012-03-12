@@ -17,12 +17,22 @@ let to_typed_loc = function(loc, fileName) {
   let end   = new Ast.Position(loc.end.line, loc.end.column);
   return new Ast.SourceLocation(fileName, start, end);
 };
+
 let to_typed_ast = function(node, fileName) {
-  let all_comments = {
+  /**
+   * Handler for directives (i.e. comments)
+   */
+  let Directives = {
     _unattached: [], // Line -> arrays of comments finishing at that line
+    _first_attached_comment: -1,
+    _regexp_extract:  /[ \t*]*(@([a-zA-Z0-9_]*) *{([^}]*)} *([a-zA-Z0-9]*))/,
     add_comments: function(comments) {
       for (let i = 0; i < comments.length; ++i) {
         let comment = comments[i];
+        let first_char = comment.value[0];
+        if (first_char != '*') {
+          continue;
+        }
         let last_line = comment.lines[1];
         let entry = this._unattached[last_line];
         if (!entry) {
@@ -31,6 +41,14 @@ let to_typed_ast = function(node, fileName) {
         entry.push(comment);
       }
     },
+    /**
+     * Get the comments that are attached to the node.
+     *
+     * Rules are the following:
+     * - comments can be attached only to statements and declarations;
+     * - to be attached, a comment must appear on the same line as the
+     * statement/declaration or on the line immediately before.
+     */
     extract_comments_for_node: function(node) {
       if (node.type.search(/Statement|Declaration/) == -1) {
         return null;
@@ -50,26 +68,54 @@ let to_typed_ast = function(node, fileName) {
         result.concat(this._unattached[line_start]);
         delete this._unattached[line_start];
       }
-      return result;
+      if (!result) {
+        return null;
+      }
+      if (this._first_attached_comment == -1) {
+        this._first_attached_comment = line_start;
+      }
+      return this.parse_comment(result);
     },
-    /**
-     * Get the comments that are attached to the node.
-     *
-     * Rules are the following:
-     * - comments can be attached only to statements and declarations;
-     * - to be attached, a comment must appear on the same line as the
-     * statement/declaration or on the line immediately before.
-     */
     get_unattached_comments: function() {
       print("Getting unattached comments");
-      let result = [];
-      for(let i = 0; i < this._unattached.length; ++i) {
+      let result;
+      for(let i = 0; i < this._first_attached_comment; ++i) {
         let current = this._unattached[i];
         if (current) {
-          result.concat(current);
+          let directives = Directives.parse_comment(current);
+          if (directives) {
+            if (!result) {
+              result = [];
+            }
+            directives.forEach(
+              function(v) {
+                result.push(v);
+              }
+            );
+          }
         }
       }
-      print("Unattached comments: "+result.toSource());
+      return result;
+    },
+    parse_comment: function(comments) {
+      print("Parsing comment "+comments.toSource());
+      let result = null;
+      for (let i = 0; i < comments.length; ++i) {
+        let current = comments[i];
+        let matched = current.value.match(Directives._regexp_extract);
+        if (!matched) continue;
+        let [ignore, string, directive, param, optname] = matched;
+        if (!result) {
+          result = [];
+        }
+        string = '* ' + string;
+        print("matched");
+        print(matched.toSource());
+        result.push(new Ast.Directive(comments.lines,
+                                      comments.range,
+                                      current.type, string,
+                                      directive, param, optname));
+      }
       return result;
     }
   };
@@ -91,16 +137,16 @@ let to_typed_ast = function(node, fileName) {
     let range = node.range;
     let comments;
     if (node.type == "Program") {
-      all_comments.add_comments(node.comments);
+      Directives.add_comments(node.comments);
     } else {
-      comments = all_comments.extract_comments_for_node(node);
+      comments = Directives.extract_comments_for_node(node);
     };
     switch(node.type) {
     case "Program":
       {
         let elements = loop(node.body);
         return new Ast.Program(loc, range,
-                               all_comments.get_unattached_comments(),
+                               Directives.get_unattached_comments(),
                                elements);
       }
     case "Function":
