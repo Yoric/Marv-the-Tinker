@@ -18,6 +18,61 @@ let to_typed_loc = function(loc, fileName) {
   return new Ast.SourceLocation(fileName, start, end);
 };
 let to_typed_ast = function(node, fileName) {
+  let all_comments = {
+    _unattached: [], // Line -> arrays of comments finishing at that line
+    add_comments: function(comments) {
+      for (let i = 0; i < comments.length; ++i) {
+        let comment = comments[i];
+        let last_line = comment.lines[1];
+        let entry = this._unattached[last_line];
+        if (!entry) {
+          this._unattached[last_line] = entry = [];
+        }
+        entry.push(comment);
+      }
+    },
+    extract_comments_for_node: function(node) {
+      if (node.type.search(/Statement|Declaration/) == -1) {
+        return null;
+      }
+      let line_start = node.loc.start.line;
+      let result = null;
+      if (line_start > 0) {
+        if (this._unattached[line_start - 1]) {
+          result = this._unattached[line_start - 1];
+          delete this._unattached[line_start - 1];
+        }
+      }
+      if (this._unattached[line_start]) {
+        if (!result) {
+          result = [];
+        }
+        result.concat(this._unattached[line_start]);
+        delete this._unattached[line_start];
+      }
+      return result;
+    },
+    /**
+     * Get the comments that are attached to the node.
+     *
+     * Rules are the following:
+     * - comments can be attached only to statements and declarations;
+     * - to be attached, a comment must appear on the same line as the
+     * statement/declaration or on the line immediately before.
+     */
+    get_unattached_comments: function() {
+      print("Getting unattached comments");
+      let result = [];
+      for(let i = 0; i < this._unattached.length; ++i) {
+        let current = this._unattached[i];
+        if (current) {
+          result.concat(current);
+        }
+      }
+      print("Unattached comments: "+result.toSource());
+      return result;
+    }
+  };
   let loop = function(node) {
     if (node == null) {
       return null;
@@ -35,16 +90,18 @@ let to_typed_ast = function(node, fileName) {
     let loc = to_typed_loc(node.loc, fileName);
     let range = node.range;
     let comments;
-    if (node.comments) {
-      comments = new Ast.Comments(node.comments);
-      print("This node has comments: "+node.comments);
-    }
+    if (node.type == "Program") {
+      all_comments.add_comments(node.comments);
+    } else {
+      comments = all_comments.extract_comments_for_node(node);
+    };
     switch(node.type) {
     case "Program":
       {
-        // Do something special with comments
         let elements = loop(node.body);
-        return new Ast.Program(loc, range, comments, elements);
+        return new Ast.Program(loc, range,
+                               all_comments.get_unattached_comments(),
+                               elements);
       }
     case "Function":
       {
