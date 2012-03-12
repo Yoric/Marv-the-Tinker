@@ -28,10 +28,6 @@ function main(args)
       // Reprinting with esprima
       print("Sanity check");
       print(Parse.toJS(code));
-
-      // Reprinting manually
-      print("Generated code");
-      print(code.toJS());
     }
   );
   // Parse command-line arguments
