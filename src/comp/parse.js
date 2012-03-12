@@ -78,7 +78,6 @@ let to_typed_ast = function(node, fileName) {
       return this.parse_comment(result, node);
     },
     get_unattached_comments: function() {
-      print("Getting unattached comments");
       let result;
       for(let i = 0; i < this._first_attached_comment; ++i) {
         let current = this._unattached[i];
@@ -99,7 +98,6 @@ let to_typed_ast = function(node, fileName) {
       return result;
     },
     parse_comment: function(comments, node) {
-      print("Parsing comment "+comments.toSource());
       let result = null;
       for (let i = 0; i < comments.length; ++i) {
         let current = comments[i];
@@ -110,8 +108,6 @@ let to_typed_ast = function(node, fileName) {
           result = [];
         }
         string = '* ' + string;
-        print("matched");
-        print(matched.toSource());
         result.push(new Ast.Directive(comments.lines,
                                       comments.range,
                                       current.type, string,
@@ -142,7 +138,6 @@ let to_typed_ast = function(node, fileName) {
       );
       return result;
     }
-    print("Translating node "+node.type);
     let loc = to_typed_loc(node.loc, fileName);
     let range = node.range;
     let comments;
@@ -264,17 +259,30 @@ let to_typed_ast = function(node, fileName) {
       }
     case "VariableDeclaration":
       {
-        let declarations = loop(node.declarations);
+        let declarators = loop(node.declarations);
+        let kind = node.kind;
+        declarators.forEach(
+          function(decl) {
+            decl.kind = kind;
+          }
+        );
         return new Ast.Statement.Declaration.Var(loc, range, comments,
-                                                 declarations,
-                                                 node.kind);
+                                                 declarators,
+                                                 kind);
       }
     case "VariableDeclarator":
       {
         let id = loop(node.id);
         let init = loop(node.init);
-        return new Ast.Declarator(loc, range, comments,
+        return new Ast.Definition(loc, range, comments,
                                   id, init);
+      }
+    case "AssignmentExpression":
+      {
+        let left = loop(node.left);
+        let right= loop(node.right);
+        return new Ast.Expression.Assignment(loc, range, comments,
+                                             node.operator, left, right);
       }
     case "BinaryExpression":
       {
@@ -338,9 +346,8 @@ let Parse = {
     // FIXME: Nicer filename
     let source = read("../../"+fileName);
     let untyped_ast = esprima.parse(source, options);
-    print(untyped_ast);
-    let typed_ast = to_typed_ast(untyped_ast);
-    print(typed_ast.toSource());
+    print(untyped_ast.toSource());
+    let typed_ast = to_typed_ast(untyped_ast, fileName);
     return typed_ast;
   },
   toJS: function(code) {
