@@ -3,18 +3,18 @@
  *
  * marv0 compiler.
  *
- * At this stade, we transform JS into JS, without comments.
- *
- * Feathres to add:
- * - keep comments;
- * - bootstrap;
+ * At this stage:
+ * - we parse the JS source code;
+ * - we extract the comments that contain directives;
+ * - we store the table of directives in the program node;
+ * - 
+ * - we reprint the result.
  */
 
-/* Just a test*/
 load("src/comp/require.js");
 let Debug = require("debug.js");
 let Parse = require("parse.js");
-
+let Identifiers = require("pass_ident.js");
 
 function main(args)
 {
@@ -28,6 +28,12 @@ function main(args)
       // Reprinting with esprima
       print("Sanity check");
       print(Parse.toJS(code));
+
+      // Analyzing identifiers
+      print("Analyzing identifiers");
+      let rewritten = Identifiers.resolve(code);
+//      print(rewritten.toSource());
+      print(Parse.toJS(rewritten));
     }
   );
   // Parse command-line arguments
