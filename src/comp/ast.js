@@ -47,10 +47,11 @@ Ast.Node.prototype = {
   }
 };
 
-Ast.Program = function(loc, range, comments, elements) {
+Ast.Program = function(loc, range, comments, elements, directives) {
   Ast.Node.call(this, loc, range, comments);
   this.elements = elements; // SpiderMonkey-style
   this.body = elements; // esprima-style
+  this.directives = directives;
 };
 Ast.Program.prototype = new Ast.Node();
 Ast.Program.prototype.type = "Program";

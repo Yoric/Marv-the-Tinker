@@ -26,6 +26,7 @@ let to_typed_ast = function(node, fileName) {
     _unattached: [], // Line -> arrays of comments finishing at that line
     _first_attached_comment: -1,
     _regexp_extract:  /[ \t*]*(@([a-zA-Z0-9_]*) *{([^}]*)} *([a-zA-Z0-9]*))/,
+    _directives: {},
     add_comments: function(comments) {
       for (let i = 0; i < comments.length; ++i) {
         let comment = comments[i];
@@ -74,7 +75,7 @@ let to_typed_ast = function(node, fileName) {
       if (this._first_attached_comment == -1) {
         this._first_attached_comment = line_start;
       }
-      return this.parse_comment(result);
+      return this.parse_comment(result, node);
     },
     get_unattached_comments: function() {
       print("Getting unattached comments");
@@ -82,7 +83,7 @@ let to_typed_ast = function(node, fileName) {
       for(let i = 0; i < this._first_attached_comment; ++i) {
         let current = this._unattached[i];
         if (current) {
-          let directives = Directives.parse_comment(current);
+          let directives = Directives.parse_comment(current, node);
           if (directives) {
             if (!result) {
               result = [];
@@ -97,7 +98,7 @@ let to_typed_ast = function(node, fileName) {
       }
       return result;
     },
-    parse_comment: function(comments) {
+    parse_comment: function(comments, node) {
       print("Parsing comment "+comments.toSource());
       let result = null;
       for (let i = 0; i < comments.length; ++i) {
@@ -115,10 +116,19 @@ let to_typed_ast = function(node, fileName) {
                                       comments.range,
                                       current.type, string,
                                       directive, param, optname));
+        let table = Directives._directives[directive];
+        if (!table) {
+          Directives._directives[directive] = table = [];
+        }
+        table.push(node);
       }
       return result;
+    },
+    get_directives: function() {
+      return Directives._directives;
     }
   };
+  let program;
   let loop = function(node) {
     if (node == null) {
       return null;
@@ -136,18 +146,19 @@ let to_typed_ast = function(node, fileName) {
     let loc = to_typed_loc(node.loc, fileName);
     let range = node.range;
     let comments;
-    if (node.type == "Program") {
-      Directives.add_comments(node.comments);
-    } else {
+    if (node.type != "Program") {
       comments = Directives.extract_comments_for_node(node);
     };
     switch(node.type) {
     case "Program":
       {
+        Directives.add_comments(node.comments);
+
         let elements = loop(node.body);
         return new Ast.Program(loc, range,
                                Directives.get_unattached_comments(),
-                               elements);
+                               elements,
+                               Directives.get_directives());
       }
     case "Function":
       {
