@@ -290,6 +290,9 @@ Ast.Identifier = function(loc, range, comments, name, isexpr, info) {
 Ast.Identifier.prototype = new Ast.Node();
 Ast.Identifier.prototype.type = "Identifier";
 Ast.Identifier.prototype.become = function(original) {
+  if (!(original instanceof Ast.Identifier)) {
+    throw new TypeError("Ast.Identifier.prototype.become "+original.type);
+  }
   this.name = original.name; // Canonicalize string
   this.info = original.info;
 };
