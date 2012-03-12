@@ -7,7 +7,12 @@ function resolve_identifiers(code) {
     this.parent = parent || null;
   }
   Scope.prototype = {
+    /**
+     * @param {string} key
+     */
     get: function(key) {
+      print("Looking for variable: "+key);
+      if (typeof key != "string") throw new TypeError();
       let inner_key = ":" + key;
       return this._get(":" + key);
     },
@@ -15,6 +20,8 @@ function resolve_identifiers(code) {
      * @param {Ast.Definition} declaration
      */
     put: function(declaration) {
+      print("Putting variable: "+declaration.id.name);
+      if (!(declaration instanceof Ast.Definition)) throw new TypeError();
       let inner_key = ":" + declaration.id.name;
       let uid = identifiers.push(declaration);
       this[inner_key] = declaration;
@@ -23,13 +30,15 @@ function resolve_identifiers(code) {
     local_get: function(key) {
       return this[":" + key];
     },
-    _get: function(key) {
-      if (this[inner_key]) {
-        return this[inner_key];
-      }
-      if (this.parent) {
-        return this.parent._get(key);
-      }
+    _get: function(inner_key) {
+      let link = this;
+      do {
+        let result = link[inner_key];
+        if (result) {
+          return result;
+        }
+        link = link.parent;
+      } while(link);
       return null;
     },
     enter: function() {
@@ -128,21 +137,23 @@ function resolve_identifiers(code) {
       },
       Identifier: {
         exit: function(node) {
-          if (!node.isexpr) {
-//            print("Ignoring definition of "+node.name+ " at "+node.loc);
+          if (node.binder) {
+            print("Ignoring definition of "+node.name+ " at "+node.loc);
             return; // This is an identifier definition, handled above
           }
           print("Checking usage of "+node.name);
           let def;
-          if (!(def = block_scope.get(node.id))) {
-            def = function_scope.get(node.id);
+          if (!(def = block_scope.get(node.name))) {
+            def = function_scope.get(node.name);
           }
-          if (!def) {
-            Log.warning("Undefined identifier", def.loc);
-            def = node;
-            unfound.put(def);
+          if (def) {
+            node.become(def.id);
+          } else {
+            Log.warning("Undefined identifier "+node.name, node.loc);
+//            def = node;
+//            unfound.put(def);
           }
-          this.become(def);
+
         }
       },
       BlockStatement: {
@@ -155,13 +166,25 @@ function resolve_identifiers(code) {
       },
       FunctionDeclaration: {
         enter: function(node) {
-          print("FunctionDeclaration.enter "+node.params.toSource());
+          // Introduce the function itself in the parent scope
+          print("FunctionDeclaration.enter "+node.id.name);
+          let previous;
+          let definition = new Ast.Definition(node.id.loc, node.id.range, null,
+                                                node.id, null, "function");
+          if (  (previous = function_scope.get(node.id.name))
+             || (previous = block_scope.get(node.id.name))) {
+            report_redef(definition, previous);
+          }
+          function_scope.put(definition);
+
+          // Then advance to subscope and introduce arguments in that subscope
           block_scope = block_scope.enter();
           function_scope = function_scope.enter();
           for (let i = 0; i < node.params.length; ++i) {
             let current = node.params[i];
-            function_scope.put(new Ast.Definition(current.loc, current.range,
-                                                  null, current, null, "argument"));
+            print("Declaring argument "+current.toSource());
+            function_scope.put(new Ast.Definition(current.loc, current.range, null,
+                                                  current, null, "argument"));
           }
         },
         exit: function() {
