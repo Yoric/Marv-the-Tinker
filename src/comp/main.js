@@ -33,7 +33,12 @@ function main(args)
       print("Analyzing identifiers");
       let rewritten = Identifiers.resolve(code);
 //      print(rewritten.toSource());
-      print(Parse.toJS(rewritten));
+      try {
+        print(Parse.toJS(rewritten));
+      } catch (x) {
+        print(x);
+        print(x.stack);
+      }
     }
   );
   // Parse command-line arguments
