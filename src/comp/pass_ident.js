@@ -49,18 +49,20 @@ function resolve_identifiers(code) {
   let block_scope    = new Scope();
   let unfound        = new Scope();
   let report_redef = function(newdef, olddef, subblock) {
-    Log.warning("Variable '"+newdef.id.name+"' was defined twice in the same scope");
-    Log.warning("First definition "+olddef.kind+"-style", olddef.loc);
-    Log.warning("Second definition"+(subblock?", in a subblock,":"")+
+    let kind;
+    let logger;
+    if (newdef.isConst() || olddef.isConst()) {
+      kind = "Constant";
+      logger = Log.error;
+    } else {
+      kind = "Variable";
+      logger = Log.warning;
+    }
+    logger(""+kind+" '"+newdef.id.name+"' was defined twice in the same scope");
+    logger("First definition "+olddef.kind+"-style", olddef.loc);
+    logger("Second definition"+(subblock?", in a subblock,":"")+
                 " "+newdef.kind+"-style",
                 newdef.loc);
-  };
-  let report_const_redef = function(newdef, olddef, subblock) {
-    Log.error("Constant '"+newdef.id.name+"' was defined twice in the same scope");
-    Log.error("First definition "+olddef.kind+"-style", olddef.loc);
-    Log.error("Second definition "+(subblock?", in a subblock,":""),
-              " "+newdef.kind+"-style",
-              newdef.loc);
   };
 
   let result = code.walk(
@@ -74,63 +76,21 @@ function resolve_identifiers(code) {
             // in the same scope. In this case, merge them if they
             // are |var|/|let|, reject if one is |const|.
             let previous;
-            if (variable.isLet()) {
-              if ((previous = block_scope.local_get(variable.id.name))) {
-                // Another let-definition exists in the exact same
-                // (block) scope
-                report_redefinition(variable, previous, false);
-                // Merge
-                variable.id.become(previous.id);
-              } else if ((previous = function_scope.local_get(variable.id.name))) {
-                // Another var or const-definition exists
-                if (previous.isConst()) {
-                  report_const_redef(variable, previous, false);
-                } else if (previous.id.info.block == block_scope) {
-                  // Two definitions in the same block scope, this weird
-                  report_redef(variable, previous, false);
-                } else {
-                  // This definition is in a deeper scope, this is a little
-                  // strange, but probably ok
-                  report_redef(variable, previous, true);
-                }
-                // Merge
-                variable.id.become(previous.id);
-              } else {
-                // Nothing weird here, just update the scope
+            if ((previous = block_scope.local_get(variable.id.name))
+              || (previous = function_scope.local_get(variable.id.name))) {
+              // Another let-definition exists in the exact same
+              // (block) scope
+              report_redef(variable, previous, false);
+              // Merge
+              variable.id.become(previous.id);
+            } else {
+              // Nothing weird here, just update the scope
+              if (variable.isLet()) {
                 variable.id.info.uid = block_scope.put(variable);
-                variable.id.info.block = block_scope;
-              }
-            } else if (variable.isVar()) {
-              if ((previous = block_scope.local_get(variable.id.name))) {
-                report_redef(variable, previous, false);
-                // Merge
-                variable.id.become(previous.id);
-              } else if ((previous = function_scope.local_get(variable.id.name))) {
-                // Another var or const-definition exists
-                if (previous.isConst()) {
-                  report_const_redef(variable, previous, false);
-                } else {
-                  // Two definitions in the same function scope, this weird
-                  report_redef(variable, previous, false);
-                }
-                // Merge
-                variable.id.become(previous.id);
-              } else {
-                // Nothing weird here, just update the scope
-                variable.id.info.uid = function_scope.put(variable);
-                variable.id.info.block = block_scope;
-              }
-            } else if (variable.isConst()) {
-              if ((previous = function_scope.local_get(variable.id))) {
-                report_const_redef(variable, previous, false);
-                variable.id.become(previous.id);
-              } else if ((previous = function_scope.local_get(variable.id))) {
-                report_const_redef(variable, previous, false);
-                variable.id.become(previous.id);
               } else {
                 variable.id.info.uid = function_scope.put(variable);
-                variable.id.info.block = block_scope;
               }
+              variable.id.info.block = block_scope;
             }
           }
         }
