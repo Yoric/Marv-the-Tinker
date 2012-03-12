@@ -1,0 +1,10 @@
+How far can we push JavaScript forward with:
+- pure JavaScript;
+- a JavaScript-to-JavaScript compiler written in JavaScript;
+- directives.
+
+My guess? We can do a lot, including:
+- improving reliability;
+- simplifying the life of developers;
+- concurrency;
+- distribution.
