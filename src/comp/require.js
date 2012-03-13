@@ -26,13 +26,16 @@
       }
       let evaluated =
         (function() {
-           evalWithLocation(
+           let global = newGlobal('same-compartment');
+           global.require = require;
+           global.exports = {};
+           global.module  = {};
+           evalWithLocation.call(global,
              '"use strict";\n\n'+
-               'let exports = {};\n'+
-               'let module = {};\n' + // Unused atm
-               source, fileName, 1);
-           return {exports: exports,
-                   module:  module};
+               source
+             , fileName, 1);
+           return {exports: global.exports,
+                   module:  global.module};
          })();
       modules[":"+fileName] = evaluated.exports;
       modules[":"+moduleName] = evaluated.exports;
