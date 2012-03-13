@@ -13,6 +13,7 @@
 
 load("src/comp/require.js");
 let Debug = require("debug.js");
+let IO = require("io.js");
 let Parse = require("parse.js");
 let Identifiers = require("pass_ident.js");
 
@@ -20,6 +21,7 @@ function main(args)
 {
   print("Welcome to Marv 0");
   print(Debug.args_to_string(args));
+  let text = "";
   args.forEach(
     function(file) {
       print("Reading file: "+file);
@@ -33,19 +35,18 @@ function main(args)
       print("Analyzing identifiers");
       let rewritten = Identifiers.resolve(code);
       try {
-        print(Parse.toJS(rewritten));
+        let js = Parse.toJS(rewritten);
+        text += js + "\n";
+        print(js);
       } catch (x) {
         print(x);
         print(x.stack);
       }
     }
   );
-  // Parse command-line arguments
-  // For each source file
-  // ... open file
-  // ... parse file (including comments)
-  // ... perform passes
-  // ... generate .js source
+  let out = IO.open_truncate("out.js");
+  out.write(text);
+  out.close();
 }
 
 main.call(this, arguments);
