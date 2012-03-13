@@ -1,5 +1,6 @@
 let Ast = require("ast.js");
 let Log = require("log.js");
+let Debug = require("debug.js");
 
 function resolve_identifiers(code) {
   let identifiers = [];
@@ -11,7 +12,7 @@ function resolve_identifiers(code) {
      * @param {string} key
      */
     get: function(key) {
-      print("Looking for variable: "+key);
+      Debug.log("Looking for variable: "+key);
       if (typeof key != "string") throw new TypeError();
       let inner_key = ":" + key;
       return this._get(":" + key);
@@ -20,7 +21,7 @@ function resolve_identifiers(code) {
      * @param {Ast.Definition} declaration
      */
     put: function(declaration) {
-      print("Putting variable: "+declaration.id.name);
+      Debug.log("Putting variable: "+declaration.id.name);
       if (!(declaration instanceof Ast.Definition)) throw new TypeError();
       let inner_key = ":" + declaration.id.name;
       let uid = identifiers.push(declaration);
@@ -69,7 +70,7 @@ function resolve_identifiers(code) {
     {
       VariableDeclaration: {
         exit: function(node) {
-          print("VariableDeclaration.exit");
+          Debug.log("VariableDeclaration.exit");
           for (let i = 0; i < node.declarations.length; ++i) {
             let variable = node.declarations[i];
             // We may have several declarations with the same name
@@ -98,10 +99,10 @@ function resolve_identifiers(code) {
       Identifier: {
         exit: function(node) {
           if (node.binder) {
-            print("Ignoring definition of "+node.name+ " at "+node.loc);
+            Debug.log("Ignoring definition of "+node.name+ " at "+node.loc);
             return; // This is an identifier definition, handled above
           }
-          print("Checking usage of "+node.name);
+          Debug.log("Checking usage of "+node.name);
           let def;
           if (!(def = block_scope.get(node.name))) {
             def = function_scope.get(node.name);
@@ -127,7 +128,7 @@ function resolve_identifiers(code) {
       FunctionDeclaration: {
         enter: function(node) {
           // Introduce the function itself in the parent scope
-          print("FunctionDeclaration.enter "+node.id.name);
+          Debug.log("FunctionDeclaration.enter "+node.id.name);
           let previous;
           let definition = new Ast.Definition(node.id.loc, node.id.range, null,
                                                 node.id, null, "function");
@@ -142,13 +143,13 @@ function resolve_identifiers(code) {
           function_scope = function_scope.enter();
           for (let i = 0; i < node.params.length; ++i) {
             let current = node.params[i];
-            print("Declaring argument "+current.toSource());
+            Debug.log("Declaring argument "+current.toSource());
             function_scope.put(new Ast.Definition(current.loc, current.range, null,
                                                   current, null, "argument"));
           }
         },
         exit: function() {
-          print("FunctionDeclaration.exit");
+          Debug.log("FunctionDeclaration.exit");
           block_scope = block_scope.parent;
           function_scope = function_scope.parent;
         }

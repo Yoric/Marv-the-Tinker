@@ -1,15 +1,16 @@
-require("io.js");
+let IO = require("io.js");
 
-let logfile;
-{
-  let _logfile;
-  logfile = function() {
-    if (_logfile) {
-      return _logfile;
-    }
-    return _logfile = IO.open_truncate("out.log");
-  };
-}
+Object.defineProperty(
+  this, "logfile",
+  {
+    get: function() {
+      delete this.logfile;
+      return this.logfile = IO.open_truncate("result.log");
+    },
+    configurable: true
+  }
+);
+
 
 function print_error(msg, loc) {
   let text = "MARV ERROR: ";
@@ -18,7 +19,7 @@ function print_error(msg, loc) {
   }
   text += msg;
   printErr(text);
-  logfile().write(text+"\n");
+  logfile.write(text+"\n");
 }
 
 function print_warning(msg, loc) {
@@ -28,8 +29,14 @@ function print_warning(msg, loc) {
   }
   text += msg;
   printErr(text);
-  logfile().write(text+"\n");
+  logfile.write(text+"\n");
+}
+
+function print_progress(msg) {
+  print(msg);
+  logfile.write("MARV INFO: "+msg+"\n");
 }
 
 exports.error = print_error;
 exports.warning = print_warning;
+exports.progress = print_progress;

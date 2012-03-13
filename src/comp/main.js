@@ -16,6 +16,7 @@ let Debug = require("debug.js");
 let IO = require("io.js");
 let Parse = require("parse.js");
 let Identifiers = require("pass_ident.js");
+let Log = require("log.js");
 
 function main(args)
 {
@@ -24,26 +25,27 @@ function main(args)
   let text = "";
   args.forEach(
     function(file) {
-      print("Reading file: "+file);
+      Log.progress("Reading file "+file);
       let code = Parse.fromFile(file);
 
       // Reprinting with esprima
-      print("Sanity check");
-      print(Parse.toJS(code));
+      Debug.log("Sanity check");
+      Debug.log(Parse.toJS(code));
 
       // Analyzing identifiers
-      print("Analyzing identifiers");
+      Log.progress("Analyzing identifiers");
       let rewritten = Identifiers.resolve(code);
       try {
         let js = Parse.toJS(rewritten);
         text += js + "\n";
-        print(js);
+        Debug.log(js);
       } catch (x) {
-        print(x);
-        print(x.stack);
+        Debug.error(x);
+        Debug.error(x.stack);
       }
     }
   );
+  Log.progress("All files compiled, writing output.");
   let out = IO.open_truncate("out.js");
   out.write(text);
   out.close();

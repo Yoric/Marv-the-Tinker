@@ -346,7 +346,6 @@ let to_typed_ast = function(node, fileName) {
       }
     case "Identifier":
       {
-        print("Identifier name: "+node.name);
         return new Ast.Identifier(loc, range, comments, node.name);
       }
     case "Literal":
@@ -355,8 +354,6 @@ let to_typed_ast = function(node, fileName) {
       }
     default:
       let error = new Error("Node type "+node.type+" not handled yet");
-      print(Debug.source_of(node));
-      print(error.stack);
       throw error;
     }
   };
@@ -371,7 +368,7 @@ let Parse = {
   fromFile: function(fileName) {
     let source = read(fileName);
     let untyped_ast = esprima.parse(source, options);
-    print(untyped_ast.toSource());
+    Debug.log(untyped_ast.toSource());
     let typed_ast = to_typed_ast(untyped_ast, fileName);
     return typed_ast;
   },

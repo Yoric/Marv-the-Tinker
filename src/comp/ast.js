@@ -1,3 +1,6 @@
+let Log = require("log.js");
+let Debug = require("debug.js");
+
 let Ast = {};
 exports = Ast;
 
@@ -5,7 +8,7 @@ exports = Ast;
 
 function walk_array(array, cb) {
   for (let i = 0; i < array.length; ++i) {
-    print(array[i].type);
+    Debug.log(array[i].type);
     let current = array[i].walk(cb);
     if (current) {
       array[i] = current;
@@ -14,7 +17,7 @@ function walk_array(array, cb) {
 }
 
 function walk_enter(obj, walker) {
-  print("Entering "+obj.type);
+  Debug.log("Entering "+obj.type);
   if (walker && walker.enter) {
     walker.enter(obj);
   }
@@ -67,10 +70,10 @@ Ast.Node = function(loc, range, comments) {
 };
 Ast.Node.prototype = {
   toJS: function() {
-    print(""+this.type+".toJS() not implemented yet");
+    Debug.log(""+this.type+".toJS() not implemented yet");
   },
   walk: function() {
-    print(""+this.type+".walk() not implemented yet");
+    Debug.log(""+this.type+".walk() not implemented yet");
   }
 };
 
@@ -252,7 +255,7 @@ Ast.Statement.Block = function(loc, range, comments, body) {
 Ast.Statement.Block.prototype = new Ast.Statement();
 Ast.Statement.Block.prototype.type = "BlockStatement";
 Ast.Statement.Block.prototype.walk = function(cb) {
-  print("Walking through a block statement");
+  Debug.log("Walking through a block statement");
   walk_enter(this, cb.BlockStatement);
   walk_array(this.body, cb);
   return walk_exit(this, cb.BlockStatement);
@@ -309,8 +312,8 @@ Ast.Identifier.prototype.become = function(original) {
   this.info = original.info;
 };
 Ast.Identifier.prototype.walk = function(cb) {
-  print("Walking through an identifier");
-  print(Object.keys(cb));
+  Debug.log("Walking through an identifier");
+  Debug.log(Object.keys(cb));
   walk_enter(this, cb.Identifier);
   return walk_exit(this, cb.Identifier);
 };
