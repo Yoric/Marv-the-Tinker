@@ -1,4 +1,4 @@
-load("lib/esprima.js");
+let esprima = require("../../lib/esprima.js");
 let Ast = require("ast.js");
 let Debug = require("debug.js");
 
@@ -311,7 +311,7 @@ let to_typed_ast = function(node, fileName) {
     case "CallExpression":
       {
         let callee = loop(node.callee);
-        let args = loop(node.arguments);
+        let args = loop(node["arguments"]);
         return new Ast.Expression.Call(loc, range, comments,
                                        callee, args);
       }
@@ -369,8 +369,7 @@ let Parse = {
     return to_typed_ast(untyped_ast);
   },
   fromFile: function(fileName) {
-    // FIXME: Nicer filename
-    let source = read("../../"+fileName);
+    let source = read(fileName);
     let untyped_ast = esprima.parse(source, options);
     print(untyped_ast.toSource());
     let typed_ast = to_typed_ast(untyped_ast, fileName);

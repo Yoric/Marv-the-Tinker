@@ -4,7 +4,7 @@ function print_error(msg, loc) {
     text += loc + " ";
   }
   text += msg;
-  print(text);
+  printErr(text);
 }
 
 function print_warning(msg, loc) {
@@ -13,7 +13,7 @@ function print_warning(msg, loc) {
     text += loc + " ";
   }
   text += msg;
-  print(text);
+  printErr(text);
 }
 
 exports.error = print_error;

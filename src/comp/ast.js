@@ -141,14 +141,26 @@ Ast.Expression.Bin.prototype.walk = function(cb) {
   return walk_exit(this, cb.BinaryExpression);
 };
 
-Ast.Expression.Call = function(loc, range, comments, callee, args) {
+Ast.Expression.Call = function(loc, range, comments, acallee, args) {
   Ast.Expression.call(this, loc, range, comments);
-  this.callee = callee;
-  this['arguments'] = args;
-  this.args = args; // Shorthand
+  this._callee = acallee;
+  this._arguments = args;
+  this.lambda = acallee; // Shorthand
+  this.args = args;      // Shorthand
 };
 Ast.Expression.Call.prototype = new Ast.Expression();
 Ast.Expression.Call.prototype.type = "CallExpression";
+// Workaround as `callee` and `arguments` are keywords in strict mode
+Object.defineProperty(Ast.Expression.Call.prototype,
+                      "arguments", {
+                        get: function() { return this._arguments ; },
+                        set: function(x) { this._arguments = x; }
+                      });
+Object.defineProperty(Ast.Expression.Call.prototype,
+                      "callee", {
+                        get: function() { return this._callee ; },
+                        set: function(x) { this._callee = x; }
+                      });
 Ast.Expression.Call.prototype.walk = function(cb) {
   if (cb.CallExpression && cb.CallExpression.enter) {
     cb.CallExpression.enter(this);

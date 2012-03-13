@@ -32,7 +32,6 @@ function main(args)
       // Analyzing identifiers
       print("Analyzing identifiers");
       let rewritten = Identifiers.resolve(code);
-//      print(rewritten.toSource());
       try {
         print(Parse.toJS(rewritten));
       } catch (x) {
