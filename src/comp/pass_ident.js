@@ -18,11 +18,11 @@ function resolve_identifiers(code) {
       return this._get(":" + key);
     },
     /**
-     * @param {Ast.Definition} declaration
+     * @param {Ast.VariableDeclarator} declaration
      */
     put: function(declaration) {
       Debug.log("Putting variable: "+declaration.id.name);
-      if (!(declaration instanceof Ast.Definition)) throw new TypeError();
+      if (!(declaration instanceof Ast.VariableDeclarator)) throw new TypeError();
       let inner_key = ":" + declaration.id.name;
       let uid = identifiers.push(declaration);
       this[inner_key] = declaration;
@@ -130,7 +130,7 @@ function resolve_identifiers(code) {
           // Introduce the function itself in the parent scope
           Debug.log("FunctionDeclaration.enter "+node.id.name);
           let previous;
-          let definition = new Ast.Definition(node.id.loc, node.id.range, null,
+          let definition = new Ast.VariableDeclarator(node.id.loc, node.id.range, null,
                                                 node.id, null, "function");
           if (  (previous = function_scope.get(node.id.name))
              || (previous = block_scope.get(node.id.name))) {
@@ -144,7 +144,7 @@ function resolve_identifiers(code) {
           for (let i = 0; i < node.params.length; ++i) {
             let current = node.params[i];
             Debug.log("Declaring argument "+current.toSource());
-            function_scope.put(new Ast.Definition(current.loc, current.range, null,
+            function_scope.put(new Ast.VariableDeclarator(current.loc, current.range, null,
                                                   current, null, "argument"));
           }
         },
