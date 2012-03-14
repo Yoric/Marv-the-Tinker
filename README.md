@@ -14,9 +14,10 @@ So, what can we do to improve the situation?
 
 Say, here is an idea. Perhaps we can write a compiler that generates
 JavaScript from JavaScript, and perhaps we can use that compiler to:
+
 - immediate detection of errors during compilation;
 - early detection of errors during execution;
-- detect attacks;
+- detect some vulnerabilities;
 - generate code otherwise too unreadable/error-prone to be
    written manually;
 - take the opportunity to optimize the code for size, speed, etc.
@@ -35,6 +36,7 @@ What does it do?
 ----------------
 
 For the moment, very little:
+
 - Marv checks your syntax;
 - Marv resolves your variable definitions;
 - Marv informs you if your variable definitions collide;
@@ -50,6 +52,7 @@ execute
    ./marvc source_file.js
 
 It will produce the following files:
+
 - out.js (generated JavaScript);
 - out.log (warnings and errors detected);
 - debug.log (random stuff).
