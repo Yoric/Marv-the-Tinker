@@ -1,4 +1,5 @@
-let esprima = require("../../lib/esprima.js");
+let esprima = require("../../lib/esprima/esprima.js");
+let escodegen = require("../../lib/escodegen/escodegen.js");
 let Ast = require("ast.js");
 let Debug = require("debug.js");
 
@@ -31,15 +32,18 @@ let to_typed_ast = function(node, fileName) {
       for (let i = 0; i < comments.length; ++i) {
         let comment = comments[i];
         let first_char = comment.value[0];
+        Debug.log("Examining comment '"+comment.value+"'");
         if (first_char != '*') {
+          Debug.log("Not a meaningful comment");
           continue;
         }
-        let last_line = comment.lines[1];
+        let last_line = comment.end.line;
         let entry = this._unattached[last_line];
         if (!entry) {
           this._unattached[last_line] = entry = [];
         }
         entry.push(comment);
+        Debug.log("This is a meaningful comment, ending at line "+last_line);
       }
     },
     /**
@@ -58,11 +62,13 @@ let to_typed_ast = function(node, fileName) {
       let result = null;
       if (line_start > 0) {
         if (this._unattached[line_start - 1]) {
+          Debug.log("Attaching comments from previous line "+(line_start - 1));
           result = this._unattached[line_start - 1];
           delete this._unattached[line_start - 1];
         }
       }
       if (this._unattached[line_start]) {
+          Debug.log("Attaching comments from same line "+line_start);
         if (!result) {
           result = [];
         }
@@ -108,8 +114,7 @@ let to_typed_ast = function(node, fileName) {
           result = [];
         }
         string = '* ' + string;
-        result.push(new Ast.Directive(comments.lines,
-                                      comments.range,
+        result.push(new Ast.Directive(current.range,
                                       current.type, string,
                                       directive, param, optname));
         let table = Directives._directives[directive];
@@ -143,6 +148,9 @@ let to_typed_ast = function(node, fileName) {
     let comments;
     if (node.type != "Program") {
       comments = Directives.extract_comments_for_node(node);
+      if (comments) {
+        Debug.log("Node "+node.type+" has comments "+comments.toSource());
+      }
     };
     switch(node.type) {
     case "Program":
@@ -373,7 +381,7 @@ let Parse = {
     return typed_ast;
   },
   toJS: function(code) {
-    return esprima.generate(code);
+    return escodegen.generate(code);
   }
 };
 
