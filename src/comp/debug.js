@@ -35,11 +35,11 @@ let args_to_string = function() {
 };
 
 let log = function(text) {
-  logfile.write("INFO "+Date.now()+": "+text);
+  logfile.write("INFO "+Date.now()+": "+text+"\n");
 };
 
 let error = function(text) {
-  logfile.write("ERROR "+Date.now()+": "+text);
+  logfile.write("ERROR "+Date.now()+": "+text+"\n");
 };
 
 exports.source_of = source_of;
