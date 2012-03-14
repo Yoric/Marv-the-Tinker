@@ -1,6 +1,6 @@
 [submodule "lib/esprima"]
 	path = lib/esprima
-	url = https://github.com/ariya/esprima.git
+	url = https://github.com/Yoric/esprima.git
 [submodule "lib/escodegen"]
 	path = lib/escodegen
-	url = https://github.com/Constellation/escodegen.git
+	url = https://github.com/Yoric/escodegen.git
