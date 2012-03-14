@@ -26,6 +26,8 @@ function main(args)
   args.forEach(
     function(file) {
       Log.progress("Reading file "+file);
+      try {
+
       let code = Parse.fromFile(file);
 
       // Reprinting with esprima
@@ -35,7 +37,6 @@ function main(args)
       // Analyzing identifiers
       Log.progress("Analyzing identifiers");
       let rewritten = Identifiers.resolve(code);
-      try {
         let js = Parse.toJS(rewritten);
         text += js + "\n";
         Debug.log(js);
