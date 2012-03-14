@@ -54,13 +54,12 @@ Ast.SourceLocation.prototype = {
     return this.source+" ["+this.start+"-"+this.end+"]";
   }
 };
-Ast.Directive = function(lines, range, type, string, key, code, name) {
+Ast.Directive = function(range, type, string, key, code, name) {
   this.type  = type;
   this.value = string;
   this.key = key;
   this.code = code;
   this.name = name;
-  this.lines = lines;
 };
 
 Ast.Node = function(loc, range, comments) {
