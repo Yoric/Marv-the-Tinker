@@ -49,25 +49,27 @@ How do I use it?
 For the moment, Marv is not considered usable. If you want to try it, though,
 execute
 
-   ./marvc source_file.js
+    ./marvc source_file.js
 
 It will produce the following files:
 
-- out.js (generated JavaScript);
-- out.log (warnings and errors detected);
-- debug.log (random stuff).
+- `out.js` (generated JavaScript);
+- `out.log` (warnings and errors detected);
+- `debug.log` (random stuff).
 
 
 What is next?
 -------------
 
 Marv is far from complete. The next features that we intend to add are:
+
 - Cleanup;
 - Handling a larger subset of JavaScript;
 - Instrumenting code for early type-error detection;
 - Bootstrapping.
 
 Once this is done, we will proceed with
+
 - Instrumenting code for pre/post conditions error detection;
 - Instrumenting code for detection of broken invariants;
 - Elements of static type-checking with inference.
