@@ -1,3 +1,10 @@
+/**
+ * Implementation of the JavaScript AST.
+ *
+ * This AST attempts to be compatible with the SpiderMonkey Parser API
+ * https://developer.mozilla.org/en/SpiderMonkey/Parser_API
+ */
+
 let Log = require("log.js");
 let Debug = require("debug.js");
 
@@ -68,12 +75,22 @@ Ast.Node = function(loc, range, comments) {
   this.comments = comments;
 };
 Ast.Node.prototype = {
-  toJS: function() {
-    Debug.log(""+this.type+".toJS() not implemented yet");
-  },
   walk: function() {
-    Debug.log(""+this.type+".walk() not implemented yet");
-  }
+    throw new Error(this.type+".walk() not implemented yet");
+  },
+  get isExpression() {
+    throw new Error(this.type+".isExpression not implemented yet");
+  },
+  get isStatement() {
+    throw new Error(this.type+".isStatement not implemented yet");
+  },
+  get isDeclaration() {
+    throw new Error(this.type+".isDeclaration not implemented yet");
+  },
+  withType: function(type) {
+    this.type = type;
+    return this;
+  },
 };
 
 Ast.Program = function(loc, range, comments, elements, directives) {
@@ -101,16 +118,18 @@ Ast.Expression = function(loc, range, comments) {
   return this;
 };
 Ast.Expression.prototype = new Ast.Node();
+Ast.Expression.isExpression = true;
+Ast.Expression.isStatement = false;
 
-Ast.Expression.Assignment = function(loc, range, comments,
+Ast.AssignmentExpression = function(loc, range, comments,
                                      operator, left, right) {
-  Ast.Expression.Call(this, loc, range, comments);
+  Ast.Expression.call(this, loc, range, comments);
   this.operator = operator;
   this.left = left;
   this.right = right;
 };
-Ast.Expression.Assignment.prototype.type = "AssignmentExpression";
-Ast.Expression.Assignment.prototype.walk = function(cb) {
+Ast.AssignmentExpression.prototype.type = "AssignmentExpression";
+Ast.AssignmentExpression.prototype.walk = function(cb) {
   walk_enter(this, cb.AssignmentExpression);
   let result;
   if ((result = this.left.walk(cb))) {
@@ -122,16 +141,16 @@ Ast.Expression.Assignment.prototype.walk = function(cb) {
   return walk_exit(this, cb.AssignmentExpression);
 };
 
-Ast.Expression.Bin = function(loc, range, comments,
+Ast.BinaryExpression = function(loc, range, comments,
                               operator, left, right) {
   Ast.Expression.call(this, loc, range, comments);
   this.operator = operator;
   this.left = left;
   this.right = right;
 };
-Ast.Expression.Bin.prototype = new Ast.Expression();
-Ast.Expression.Bin.prototype.type = "BinaryExpression";
-Ast.Expression.Bin.prototype.walk = function(cb) {
+Ast.BinaryExpression.prototype = new Ast.Expression();
+Ast.BinaryExpression.prototype.type = "BinaryExpression";
+Ast.BinaryExpression.prototype.walk = function(cb) {
   walk_enter(this, cb.BinaryExpression);
   let result;
   if ((result = this.left.walk(cb))) {
@@ -143,27 +162,27 @@ Ast.Expression.Bin.prototype.walk = function(cb) {
   return walk_exit(this, cb.BinaryExpression);
 };
 
-Ast.Expression.Call = function(loc, range, comments, acallee, args) {
+Ast.CallExpression = function(loc, range, comments, acallee, args) {
   Ast.Expression.call(this, loc, range, comments);
   this._callee = acallee;
   this._arguments = args;
   this.lambda = acallee; // Shorthand
   this.args = args;      // Shorthand
 };
-Ast.Expression.Call.prototype = new Ast.Expression();
-Ast.Expression.Call.prototype.type = "CallExpression";
+Ast.CallExpression.prototype = new Ast.Expression();
+Ast.CallExpression.prototype.type = "CallExpression";
 // Workaround as `callee` and `arguments` are keywords in strict mode
-Object.defineProperty(Ast.Expression.Call.prototype,
+Object.defineProperty(Ast.CallExpression.prototype,
                       "arguments", {
                         get: function() { return this._arguments ; },
                         set: function(x) { this._arguments = x; }
                       });
-Object.defineProperty(Ast.Expression.Call.prototype,
+Object.defineProperty(Ast.CallExpression.prototype,
                       "callee", {
                         get: function() { return this._callee ; },
                         set: function(x) { this._callee = x; }
                       });
-Ast.Expression.Call.prototype.walk = function(cb) {
+Ast.CallExpression.prototype.walk = function(cb) {
   if (cb.CallExpression && cb.CallExpression.enter) {
     cb.CallExpression.enter(this);
   }
@@ -178,7 +197,7 @@ Ast.Expression.Call.prototype.walk = function(cb) {
   return null;
 };
 
-Ast.Expression.Function = function(loc, range, comments,
+Ast.FunctionExpression = function(loc, range, comments,
                                    id, params, body, meta) {
   Ast.Expression.call(this, loc, range, comments);
   this.id = id;
@@ -186,9 +205,9 @@ Ast.Expression.Function = function(loc, range, comments,
   this.body = body;
   this.meta = meta;
 };
-Ast.Expression.Function.prototype = new Ast.Expression();
-Ast.Expression.Function.prototype.type = "FunctionExpression";
-Ast.Expression.Function.prototype.walk = function(cb) {
+Ast.FunctionExpression.prototype = new Ast.Expression();
+Ast.FunctionExpression.prototype.type = "FunctionExpression";
+Ast.FunctionExpression.prototype.walk = function(cb) {
   walk_enter(this, cb.FunctionExpression);
   let result;
   if (this.id && (result = this.id.walk(cb))) {
@@ -201,7 +220,7 @@ Ast.Expression.Function.prototype.walk = function(cb) {
   return walk_exit(this, cb.FunctionExpression);
 };
 
-Ast.Expression.Member = function(loc, range, comments,
+Ast.MemberExpression = function(loc, range, comments,
                                  object, property,
                                  computed) {
   Ast.Expression.call(this, loc, range, comments);
@@ -209,90 +228,179 @@ Ast.Expression.Member = function(loc, range, comments,
   this.property = property;
   this.computed = computed;
 };
-Ast.Expression.Member.prototype = new Ast.Expression();
-Ast.Expression.Member.prototype.type = "MemberExpression";
-Ast.Expression.Member.prototype.walk = function(cb) {
-  if (cb.MemberExpression && cb.MemberExpression.enter) {
-    cb.MemberExpression.enter(this);
-  }
+
+Ast.MemberExpression.prototype = new Ast.Expression();
+Ast.MemberExpression.prototype.type = "MemberExpression";
+Ast.MemberExpression.prototype.walk = function(cb) {
+  walk_enter(this, cb.MemberExpression);
   let result;
-  result = this.object.walk(cb);
-  if (result) {
+  if ((result = this.object.walk(cb))) {
     this.object = result;
   }
-  if (this.computed) {
-    result = this.property.walk(cb);
-    if (result) {
-      this.property = property;
-    }
+  if (this.computed && (result = this.property.walk(cb))) {
+    this.property = result;
   }
-  if (cb.MemberExpression && cb.MemberExpression.exit) {
-    return cb.MemberExpression.exit(this);
-  }
-  return null;
+  return walk_exit(this, cb.MemberExpression);
 };
 
-Ast.Expression.This = function(loc, range, comments) {
+Ast.ObjectExpression = function(loc, range, comments, properties) {
+  Ast.Expression.call(this, loc, range, comments);
+  this.properties = properties;
+};
+Ast.ObjectExpression.prototype = new Ast.Expression();
+Ast.ObjectExpression.prototype.type = "ObjectExpression";
+Ast.ObjectExpression.prototype.walk = function(cb) {
+  walk_enter(this, cb.ObjectExpression);
+  walk_array(this.properties, cb);
+  return walk_exit(this, cb.ObjectExpression);
+};
+
+Ast.ThisExpression = function(loc, range, comments) {
   Ast.Expression.call(this, loc, range, comments);
 };
-Ast.Expression.This.prototype = new Ast.Expression();
-Ast.Expression.This.prototype.type = "ThisExpression";
-Ast.Expression.This.prototype.walk = function(cb) {
+Ast.ThisExpression.prototype = new Ast.Expression();
+Ast.ThisExpression.prototype.type = "ThisExpression";
+Ast.ThisExpression.prototype.walk = function(cb) {
   walk_enter(this, cb.ThisExpression);
   return walk_exit(this, cb.ThisExpression);
+};
+
+Ast.UpdateExpression = function(loc, range, comments,
+                                operator, argument, prefix) {
+  Ast.UpdateExpression.call(this, loc, range, comments);
+  this.operator = operator;
+  this.argument = argument;
+  this.prefix = prefix;
+};
+Ast.UpdateExpression.prototype = new Ast.Expression().withType("UpdateExpression");
+Ast.UpdateExpression.walk = function(cb) {
+  let mycb = cb.UpdateExpression;
+  walk_enter(this, mycb);
+  let result;
+  if ((result = this.operator.walk(cb))) {
+    this.operator = result;
+  }
+  if ((result = this.argument.walk(cb))) {
+    this.argument = result;
+  }
+  return walk_exit(this, mycb);
 };
 
 Ast.Statement = function(loc, range, comments) {
   Ast.Node.call(this, loc, range, comments);
 };
 Ast.Statement.prototype = new Ast.Node();
+Object.defineProperty(Ast.Statement.prototype,
+                      "isStatement",
+                      {
+                        value: true
+                      }
+                     );
+Object.defineProperty(Ast.Statement.prototype,
+                      "isExpression",
+                      {
+                        value: false
+                      }
+                     );
 
-Ast.Statement.Block = function(loc, range, comments, body) {
+
+Ast.BlockStatement = function(loc, range, comments, body) {
   Ast.Statement.call(this, loc, range, comments);
   this.body = body;
 };
-Ast.Statement.Block.prototype = new Ast.Statement();
-Ast.Statement.Block.prototype.type = "BlockStatement";
-Ast.Statement.Block.prototype.walk = function(cb) {
-  Debug.log("Walking through a block statement");
+Ast.BlockStatement.prototype = new Ast.Statement();
+Ast.BlockStatement.prototype.type = "BlockStatement";
+Ast.BlockStatement.prototype.walk = function(cb) {
   walk_enter(this, cb.BlockStatement);
   walk_array(this.body, cb);
   return walk_exit(this, cb.BlockStatement);
 };
 
 
-Ast.Statement.Declaration = function(loc, range, comments) {
+Ast.Declaration = function(loc, range, comments) {
   Ast.Statement.call(this, loc, range, comments);
 };
-Ast.Statement.Declaration.prototype = new Ast.Statement();
+Ast.Declaration.prototype = new Ast.Statement();
 
-Ast.Statement.Expression = function(loc, range, comments, expr) {
+Ast.EmptyStatement = function(loc, range, comments) {
+  Ast.Statement.call(this, loc, range, comments);
+};
+Ast.EmptyStatement.prototype = new Ast.Statement();
+
+Ast.ExpressionStatement = function(loc, range, comments, expr) {
   Ast.Statement.call(this, loc, range, comments);
   this.expression = expr;
 };
-Ast.Statement.Expression.prototype = new Ast.Statement();
-Ast.Statement.Expression.prototype.type = "ExpressionStatement";
-Ast.Statement.Expression.prototype.walk = function(cb) {
-  if (cb.ExpressionStatement && cb.ExpressionStatement.enter) {
-    cb.ExpressionStatement.enter(this);
-  }
+Ast.ExpressionStatement.prototype = new Ast.Statement();
+Ast.ExpressionStatement.prototype.type = "ExpressionStatement";
+Ast.ExpressionStatement.prototype.walk = function(cb) {
+  walk_enter(this, cb.ExpressionStatement);
   let result = this.expression.walk(cb);
   if (result) {
     this.expression = result;
   }
-  if (cb.ExpressionStatement && cb.ExpressionStatement.exit) {
-    return cb.ExpressionStatement.exit(this);
-  }
+  return walk_exit(this, cb.ExpressionStatement);
 };
 
-Ast.Statement.Try = function(loc, range, comments, block, handlers, finalizer) {
+Ast.TryStatement = function(loc, range, comments, block, handlers, finalizer) {
   Ast.Statement.call(this, loc, range, comments);
   this.block = block;
   this.handlers = handlers;
   this.finalizer = finalizer;
 };
-Ast.Statement.Try.prototype = new Ast.Statement();
-Ast.Statement.Try.prototype.type = "TryStatement";
+Ast.TryStatement.prototype = new Ast.Statement();
+Ast.TryStatement.prototype.type = "TryStatement";
+Ast.TryStatement.prototype.walk = function(cb) {
+  walk_enter(this, cb.TryStatement);
+  let result;
+  if ((result = this.block.walk(cb))) {
+    this.block = result;
+  }
+  walk_array(this.handlers, cb);
+  if (this.finalizer && (result = this.finalizer.walk(cb))) {
+    this.finalizer = result;
+  }
+  return walk_exit(this, cb.TryStatement);
+};
+
+Ast.ForStatement = function(loc, range, comments,
+                            init, test, update, body) {
+  Ast.Statement.call(this, loc, range, comments);
+  this.init = init;
+  this.test = test;
+  this.update = update;
+  this.body = body;
+};
+Ast.ForStatement.prototype = new Ast.Statement().withType("ForStatement");
+Ast.ForStatement.walk = function(cb) {
+  let mycb = cb.ForStatement;
+  walk_enter(this, mycb);
+  let result;
+  if (this.init && (result = this.init.walk(cb))) {
+    this.init = result;
+  }
+  if (this.test && (result = this.test.walk(cb))) {
+    this.test = result;
+  }
+  if (this.update && (result = this.update.walk(cb))) {
+    this.update = result;
+  }
+  if (this.body && (result = this.body.walk(cb))) {
+    this.body = result;
+  }
+  return walk_exit(this, mycb);
+};
+
+
+Ast.IfStatement = function(loc, range, comments,
+                           test, consequent, alternate) {
+  Ast.Statement.call(this, loc, range, comments);
+  this.test = test;
+  this.consequent = consequent;
+  this.alternate = alternate;
+};
+Ast.IfStatement.prototype = new Ast.Statement();
+Ast.IfStatement.prototype.type = "IfStatement";
 
 
 Ast.Identifier = function(loc, range, comments, name, isexpr, info) {
@@ -337,27 +445,27 @@ Ast.Literal.prototype.walk = function(cb) {
  * @param {Ast.Identifier} id
  * @param {Ast.Expression?} init
  */
-Ast.Definition = function(loc, range, comments, id, init, kind) {
+Ast.VariableDeclarator = function(loc, range, comments, id, init, kind) {
   Ast.Node.call(this, loc, range, comments);
   this.id = id;
   this.init = init;
   this.kind = kind;
 };
-Ast.Definition.prototype = new Ast.Node();
-Ast.Definition.prototype.type = "VariableDeclarator";
-Ast.Definition.prototype.isLet = function() {
+Ast.VariableDeclarator.prototype = new Ast.Node();
+Ast.VariableDeclarator.prototype.type = "VariableDeclarator";
+Ast.VariableDeclarator.prototype.isLet = function() {
   return this.kind == "let";
 };
-Ast.Definition.prototype.isVar = function() {
+Ast.VariableDeclarator.prototype.isVar = function() {
   return this.kind == "var";
 };
-Ast.Definition.prototype.isConst = function() {
+Ast.VariableDeclarator.prototype.isConst = function() {
   return this.kind == "const";
 };
-Ast.Definition.prototype.isParam = function() {
+Ast.VariableDeclarator.prototype.isParam = function() {
   return this.kind == "argument";
 };
-Ast.Definition.prototype.walk = function(cb) {
+Ast.VariableDeclarator.prototype.walk = function(cb) {
   if (cb.VariableDeclarator && cb.VariableDeclarator.enter) {
     cb.VariableDeclarator.enter(this);
   }
@@ -375,36 +483,36 @@ Ast.Definition.prototype.walk = function(cb) {
 /**
  * A set of variable declarations
  *
- * @param {Array.<Ast.Definition>} declarations
+ * @param {Array.<Ast.VariableDeclarator>} declarations
  */
-Ast.Statement.Declaration.Var = function(loc, range, comments,
+Ast.VariableDeclaration = function(loc, range, comments,
                                          declarations, kind,
                                          info) {
-  Ast.Statement.Declaration.call(this, loc, range, comments);
+  Ast.Declaration.call(this, loc, range, comments);
   this.declarations = declarations;
   this.kind = kind;
   this.info = info || {};
 };
-Ast.Statement.Declaration.Var.prototype = new Ast.Statement.Declaration();
-Ast.Statement.Declaration.Var.prototype.type = "VariableDeclaration";
-Ast.Statement.Declaration.Var.prototype.walk = function(cb) {
+Ast.VariableDeclaration.prototype = new Ast.Declaration();
+Ast.VariableDeclaration.prototype.type = "VariableDeclaration";
+Ast.VariableDeclaration.prototype.walk = function(cb) {
   walk_enter(this, cb.VariableDeclaration);
   walk_array(this.declarations, cb);
   return walk_exit(this, cb.VariableDeclaration);
 };
 
-Ast.Statement.Declaration.Fun = function(loc, range, comments,
+Ast.FunctionDeclaration = function(loc, range, comments,
                                          id, params, body,
                                          meta) {
-  Ast.Statement.Declaration.call(this, loc, range, comments);
+  Ast.Declaration.call(this, loc, range, comments);
   this.id = id;
   this.params = params;
   this.body = body;
   this.meta = meta;
 };
-Ast.Statement.Declaration.Fun.prototype = new Ast.Statement.Declaration();
-Ast.Statement.Declaration.Fun.prototype.type = "FunctionDeclaration";
-Ast.Statement.Declaration.Fun.prototype.walk = function(cb) {
+Ast.FunctionDeclaration.prototype = new Ast.Declaration();
+Ast.FunctionDeclaration.prototype.type = "FunctionDeclaration";
+Ast.FunctionDeclaration.prototype.walk = function(cb) {
   walk_enter(this, cb.FunctionDeclaration);
   let result;
   if ((result = this.id.walk(cb))) {
@@ -421,11 +529,25 @@ Ast.Clause = function(loc, range, comments) {
   Ast.Node.call(this, loc, range, comments);
 };
 
-Ast.Clause.Catch = function(loc, range, comments, param, guard, body) {
+Ast.CatchClause = function(loc, range, comments, param, guard, body) {
   Ast.Clause.call(this, loc, range, comments);
   this.param = param;
   this.guard = guard;
   this.body = body;
 };
-Ast.Clause.Catch.prototype = new Ast.Clause.Catch();
-Ast.Clause.Catch.prototype.type = "CatchClause";
+Ast.CatchClause.prototype = new Ast.Node();
+Ast.CatchClause.prototype.type = "CatchClause";
+Ast.CatchClause.prototype.walk = function(cb) {
+  walk_enter(this, cb.CatchClause);
+  let result;
+  if ((result = this.param.walk(cb))) {
+    this.param = result;
+  }
+  if (this.guard && (result = this.guard.walk(cb))) {
+    this.guard = result;
+  }
+  if ((result = this.body.walk(cb))) {
+    this.body = result;
+  }
+  return walk_exit(this, cb.CatchClause);
+};
