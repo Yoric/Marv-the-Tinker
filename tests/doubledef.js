@@ -18,3 +18,5 @@ function a(d) {
 
 const toto = 5;
 var toto = 5;
+
+const exports = {};
