@@ -252,10 +252,10 @@ let to_typed_ast = function(node, fileName) {
       let param = loop(node.param);
       let guard = loop(node.guard);
       let body = loop(node.body);
+      param.binder = true;
       return new Ast.CatchClause(loc, range, comments,
                                  param, guard, body);
     },
-    // FIXME: All the other statements
     FunctionDeclaration: function FunctionDeclaration(loc, comments, range, node)
     {
       let id = loop(node.id);
@@ -438,7 +438,7 @@ let Parse = {
     var stop = Date.now();
     printErr("Parsing took "+(stop - start)/1000+" seconds");
     Debug.log("Parsing done, transformation starts");
-    //Debug.log(untyped_ast.toSource());
+    Debug.log(untyped_ast.toSource());
     let typed_ast = to_typed_ast(untyped_ast, fileName);
     return typed_ast;
   },
