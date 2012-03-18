@@ -136,7 +136,7 @@ let to_typed_ast = function(node, fileName) {
   // We use an object instead of a big switch-case-on-strings
   // for performance reasons
   const cases = {
-    Program: function(loc, comments, range, node)
+    Program: function Program(loc, comments, range, node)
     {
       Directives.add_comments(node.comments);
 
@@ -146,7 +146,7 @@ let to_typed_ast = function(node, fileName) {
                              elements,
                              Directives.get_directives());
     },
-    Function: function(loc, comments, range, node)
+    Function: function Function(loc, comments, range, node)
     {
       let params = loop(node.params);
       params.forEach(
@@ -164,21 +164,21 @@ let to_typed_ast = function(node, fileName) {
                               params, body,
                               node.generator, node.expression);
     },
-    EmptyStatement: function(loc, comments, range, node)
+    EmptyStatement: function EmptyStatement(loc, comments, range, node)
     {
       return new Ast.EmptyStatement(loc, range, comments);
     },
-    BlockStatement: function(loc, comments, range, node)
+    BlockStatement: function BlockStatement(loc, comments, range, node)
     {
       let body = loop(node.body);
       return new Ast.BlockStatement(loc, range, comments, body);
     },
-    ExpressionStatement: function(loc, comments, range, node)
+    ExpressionStatement: function ExpressionStatement(loc, comments, range, node)
     {
       let expr = loop(node.expression);
       return new Ast.ExpressionStatement(loc, range, comments, expr);
     },
-    ForStatement: function(loc, comments, range, node)
+    ForStatement: function ForStatement(loc, comments, range, node)
     {
       let init = loop(node.init);
       let test = loop(node.test);
@@ -187,39 +187,39 @@ let to_typed_ast = function(node, fileName) {
       return new Ast.ForStatement(loc, range, comments,
                                   init, test, update, body);
     },
-    IfStatement: function(loc, comments, range, node)
+    IfStatement: function IfStatement(loc, comments, range, node)
     {
       let test = loop(node.test);
       let consequent = loop(node.consequent);
       let alternate = loop(node.alternate);
-      return new Ast.Statement.If(loc, range, comments,
-                                  test, consequent, alternate);
+      return new Ast.IfStatement(loc, range, comments,
+                                 test, consequent, alternate);
     },
-    LabeledStatement: function(loc, comments, range, node)
+    LabeledStatement: function LabeledStatement(loc, comments, range, node)
     {
       let body = loop(node.body);
       return new Ast.LabeledStatement(loc, range, comments,
                                       node.label,
                                       body);
     },
-    BreakStatement: function(loc, comments, range, node)
+    BreakStatement: function BreakStatement(loc, comments, range, node)
     {
       return new Ast.BreakStatement(loc, range, comments,
                                     node.label);
     },
-    ContinueStatement: function(loc, comments, range, node)
+    ContinueStatement: function ContinueStatement(loc, comments, range, node)
     {
       return new Ast.ContinueStatement(loc, range, comments,
                                        node.label);
     },
-    WithStatement: function(loc, comments, range, node)
+    WithStatement: function WithStatement(loc, comments, range, node)
     {
       let object = loop(node.object);
       let body = loop(node.body);
       return new Ast.WithStatement(loc, range, comments,
                                    object, body);
     },
-    SwitchStatement: function(loc, comments, range, node)
+    SwitchStatement: function SwitchStatement(loc, comments, range, node)
     {
       let discriminant = loop(node.discriminant);
       let cases = loop(node.cases);
@@ -227,19 +227,19 @@ let to_typed_ast = function(node, fileName) {
                                      discrimant, cases,
                                      node.lexical);
     },
-    ReturnStatement: function(loc, comments, range, node)
+    ReturnStatement: function ReturnStatement(loc, comments, range, node)
     {
       let argument = loop(node.argument);
       return new Ast.ReturnStatement(loc, range, comments,
                                      argument);
     },
-    ThrowStatement: function(loc, comments, range, node)
+    ThrowStatement: function ThrowStatement(loc, comments, range, node)
     {
       let argument = loop(node.argument);
       return new Ast.ThrowStatement(loc, range, comments,
                                     argument);
     },
-    TryStatement: function(loc, comments, range, node)
+    TryStatement: function TryStatement(loc, comments, range, node)
     {
       let block = loop(node.block);
       let handlers = loop(node.handlers);
@@ -247,7 +247,7 @@ let to_typed_ast = function(node, fileName) {
       return new Ast.TryStatement(loc, range, comments,
                                   block, handlers, finalizer);
     },
-    CatchClause: function(loc, comments, range, node)
+    CatchClause: function CatchClause(loc, comments, range, node)
     {
       let param = loop(node.param);
       let guard = loop(node.guard);
@@ -256,7 +256,7 @@ let to_typed_ast = function(node, fileName) {
                                  param, guard, body);
     },
     // FIXME: All the other statements
-    FunctionDeclaration: function(loc, comments, range, node)
+    FunctionDeclaration: function FunctionDeclaration(loc, comments, range, node)
     {
       let id = loop(node.id);
       if (id) {
@@ -274,7 +274,7 @@ let to_typed_ast = function(node, fileName) {
                                          id, params,
                                          body, meta);
     },
-    VariableDeclaration: function(loc, comments, range, node)
+    VariableDeclaration: function VariableDeclaration(loc, comments, range, node)
     {
       let declarators = loop(node.declarations);
       let kind = node.kind;
@@ -287,35 +287,35 @@ let to_typed_ast = function(node, fileName) {
                                          declarators,
                                          kind);
     },
-    VariableDeclarator: function(loc, comments, range, node)
+    VariableDeclarator: function VariableDeclarator(loc, comments, range, node)
     {
       let id = loop(node.id);
       let init = loop(node.init);
       return new Ast.VariableDeclarator(loc, range, comments,
                                         id, init);
     },
-    AssignmentExpression: function(loc, comments, range, node)
+    AssignmentExpression: function AssignmentExpression(loc, comments, range, node)
     {
       let left = loop(node.left);
       let right= loop(node.right);
       return new Ast.AssignmentExpression(loc, range, comments,
                                           node.operator, left, right);
     },
-    BinaryExpression: function(loc, comments, range, node)
+    BinaryExpression: function BinaryExpression(loc, comments, range, node)
     {
       let left = loop(node.left);
       let right= loop(node.right);
       return new Ast.BinaryExpression(loc, range, comments,
                                       node.operator, left, right);
     },
-    CallExpression: function(loc, comments, range, node)
+    CallExpression: function CallExpression(loc, comments, range, node)
     {
       let callee = loop(node.callee);
       let args = loop(node["arguments"]);
       return new Ast.CallExpression(loc, range, comments,
                                     callee, args);
     },
-    FunctionExpression: function(loc, comments, range, node)
+    FunctionExpression: function FunctionExpression(loc, comments, range, node)
     {
       let id = loop(node.id);
       if (id) {
@@ -332,7 +332,14 @@ let to_typed_ast = function(node, fileName) {
                                         id, params, body,
                                         node.meta);
     },
-    MemberExpression: function(loc, comments, range, node)
+    LogicalExpression: function LogicalExpression(loc, comments, range, node)
+    {
+      let left = loop(node.left);
+      let right = loop(node.right);
+      return new Ast.LogicalExpression(loc, range, comments,
+                                       node.operator, left, right);
+    },
+    MemberExpression: function MemberExpression(loc, comments, range, node)
     {
       let object = loop(node.object);
       let property = loop(node.property);
@@ -340,28 +347,49 @@ let to_typed_ast = function(node, fileName) {
                                       object, property,
                                       node.computed);
     },
-    ObjectExpression: function(loc, comments, range, node)
+    NewExpression: function NewExpression(loc, comments, range, node)
+    {
+      let callee = loop(node.callee);
+      let args = loop(node.arguments);
+      return new Ast.NewExpression(loc, range, comments,
+                                   callee, args);
+    },
+    ObjectExpression: function ObjectExpression(loc, comments, range, node)
     {
       let properties = loop(node.properties);
       return new Ast.ObjectExpression(loc, range, comments,
                                       properties);
     },
-    ThisExpression: function(loc, comments, range, node)
+    Property: function Property(loc, comments, range, node)
+    {
+      let key = loop(node.key);
+      let value = loop(node.value);
+      return new Ast.Property(loc, comments, range,
+                              key, value, node.kind);
+    },
+    ThisExpression: function ThisExpression(loc, comments, range, node)
     {
       return new Ast.ThisExpression(loc, range, comments);
     },
-    UpdateExpression: function(loc, comments, range, node)
+    UnaryExpression: function UnaryExpression(loc, comments, range, node)
+    {
+      let argument = loop(node.argument);
+      return new Ast.UnaryExpression(loc, range, comments,
+                                     node.operator, node.prefix,
+                                     argument);
+    },
+    UpdateExpression: function UpdateExpression(loc, comments, range, node)
     {
       let argument = loop(node.argument);
       return new Ast.UpdateExpression(loc, range, comments,
-                                      node.operator, argument,
-                                      node.prefix);
+                                      node.operator, node.prefix,
+                                      argument);
     },
-    Identifier: function(loc, comments, range, node)
+    Identifier: function Identifier(loc, comments, range, node)
     {
       return new Ast.Identifier(loc, range, comments, node.name);
     },
-    Literal: function(loc, comments, range, node)
+    Literal: function Literal(loc, comments, range, node)
     {
       return new Ast.Literal(loc, range, comments, node.value);
     }
@@ -398,20 +426,23 @@ let to_typed_ast = function(node, fileName) {
 };
 
 let Parse = {
-  fromString: function(source) {
+  fromString: function String(source) {
     let untyped_ast = esprima.parse(source, options);
     return to_typed_ast(untyped_ast);
   },
-  fromFile: function(fileName) {
+  fromFile: function File(fileName) {
     let source = read(fileName);
-    print("Parsing starts");
+    Debug.log("Parsing starts");
+    var start = Date.now();
     let untyped_ast = esprima.parse(source, options);
-    print("Parsing done, transformation starts");
+    var stop = Date.now();
+    printErr("Parsing took "+(stop - start)/1000+" seconds");
+    Debug.log("Parsing done, transformation starts");
     //Debug.log(untyped_ast.toSource());
     let typed_ast = to_typed_ast(untyped_ast, fileName);
     return typed_ast;
   },
-  toJS: function(code) {
+  toJS: function JS(code) {
     return escodegen.generate(code);
   }
 };
