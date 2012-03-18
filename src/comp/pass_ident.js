@@ -46,9 +46,21 @@ function resolve_identifiers(code) {
       return new Scope(this);
     }
   };
-  let function_scope = new Scope();
-  let block_scope    = new Scope();
-  let unfound        = new Scope();
+  let global_scope   = new Scope();
+  ["Object", "Array", "String", "Date",
+   "undefined",
+   "require", "exports"
+  ].forEach(
+    function(global) {
+      let id = new Ast.Identifier(Ast.SourceLocation.meta, null, null, global);
+      global_scope.put(
+        new Ast.VariableDeclarator(Ast.SourceLocation.meta, null, null,
+                                  id, null, "const")
+      );
+    }
+  );
+  let function_scope = global_scope;
+  let block_scope    = global_scope;
   let report_redef = function(newdef, olddef, subblock) {
     let kind;
     let logger;
@@ -124,18 +136,33 @@ function resolve_identifiers(code) {
           block_scope = block_scope.parent;
         }
       },
+      CatchClause: {
+        enter: function(node) {
+          // In |catch(x)|, introduce |x| in the local scope
+          block_scope = block_scope.enter();
+          let definition =
+            new Ast.VariableDeclarator(node.param.loc, node.param.range, null,
+                                       node.param, null, "catch");
+          block_scope.put(definition);
+        },
+        exit: function() {
+          block_scope = block_scope.parent;
+        }
+      },
       FunctionDeclaration: {
         enter: function(node) {
           // Introduce the function itself in the parent scope
-          Debug.log("FunctionDeclaration.enter "+node.id.name);
-          let previous;
-          let definition = new Ast.VariableDeclarator(node.id.loc, node.id.range, null,
-                                                node.id, null, "function");
-          if (  (previous = function_scope.get(node.id.name))
-             || (previous = block_scope.get(node.id.name))) {
-            report_redef(definition, previous);
+          if (node.id) {
+            Debug.log("FunctionDeclaration.enter "+node.id.name);
+            let previous;
+            let definition = new Ast.VariableDeclarator(node.id.loc, node.id.range, null,
+                                                        node.id, null, "function");
+            if (  (previous = function_scope.get(node.id.name))
+              || (previous = block_scope.get(node.id.name))) {
+              report_redef(definition, previous);
+            }
+            function_scope.put(definition);
           }
-          function_scope.put(definition);
 
           // Then advance to subscope and introduce arguments in that subscope
           block_scope = block_scope.enter();
@@ -146,6 +173,11 @@ function resolve_identifiers(code) {
             function_scope.put(new Ast.VariableDeclarator(current.loc, current.range, null,
                                                   current, null, "argument"));
           }
+
+          // Also introduce |arguments|
+          function_scope.put(new Ast.VariableDeclarator(node.loc, node.range, null,
+                                                        new Ast.Identifier(node.loc, node.range, null,
+                                                                          "arguments"), null, "auto"));
         },
         exit: function() {
           Debug.log("FunctionDeclaration.exit");
