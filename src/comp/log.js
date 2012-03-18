@@ -1,15 +1,5 @@
 let IO = require("io.js");
-
-Object.defineProperty(
-  this, "logfile",
-  {
-    get: function() {
-      delete this.logfile;
-      return this.logfile = IO.open_truncate("result.log");
-    },
-    configurable: true
-  }
-);
+let logfile = IO.open_truncate("result.log");
 
 
 function print_error(msg, loc) {
