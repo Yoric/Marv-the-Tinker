@@ -65,8 +65,7 @@ function resolve_identifiers(code) {
                 " "+newdef.kind+"-style",
                 newdef.loc);
   };
-
-  let result = code.walk(
+  let walker =
     {
       VariableDeclaration: {
         exit: function(node) {
@@ -153,10 +152,13 @@ function resolve_identifiers(code) {
           block_scope = block_scope.parent;
           function_scope = function_scope.parent;
         }
+      },
+      get FunctionExpression() {
+        delete this.FunctionExpression;
+        return this.FunctionExpression = this.FunctionDeclaration;
       }
-    }
-  );
-  return result || code;
+    };
+  return code.walk(walker) || code;
 }
 
 exports.resolve = resolve_identifiers;
