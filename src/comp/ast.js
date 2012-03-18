@@ -47,6 +47,8 @@ Ast.SourceLocation.prototype = {
     return this.source+" ["+this.start+"-"+this.end+"]";
   }
 };
+Ast.SourceLocation.meta = new Ast.SourceLocation("(part of JavaScript)", "alpha", "omega");
+
 Ast.Directive = function Directive(range, type, string, key, code, name) {
   this.type  = type;
   this.value = string;
@@ -542,11 +544,10 @@ Ast.IfStatement.prototype.walk = function(cb) {
   return this.walk_exit(cb.IfStatement);
 };
 
-Ast.Identifier = function Identifier(loc, range, comments, name, isexpr, info) {
+Ast.Identifier = function Identifier(loc, range, comments, name) {
   Ast.Node.call(this, loc, range, comments);
   this.name = name;
-  this.isexpr = isexpr || false;
-  this.info = info || {};
+  this.info = {};
 };
 Ast.Identifier.prototype = new Ast.Node();
 Ast.Identifier.prototype.type = "Identifier";
@@ -624,6 +625,9 @@ Ast.VariableDeclarator.prototype.isConst = function() {
 };
 Ast.VariableDeclarator.prototype.isParam = function() {
   return this.kind == "argument";
+};
+Ast.VariableDeclarator.prototype.isFunction = function() {
+  return this.kind == "function";
 };
 Ast.VariableDeclarator.prototype.walk = function(cb) {
   let result;
