@@ -65,10 +65,11 @@ const Unix = {
         let stream = this.stream;
         let index = 0;
         while (true) {
-          for (let i = 0; i < 4096 && index < text.length; ++i, ++index) {
+          let i;
+          for (i = 0; i < 4096 && index < text.length; ++i, ++index) {
             buf[i] = text.charCodeAt(index);
           }
-          fwrite(buf, 4096, 1, stream);
+          fwrite(buf, i, 1, stream);
           if (index >= text.length) {
             return;
           }
