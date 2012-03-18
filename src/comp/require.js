@@ -33,7 +33,7 @@
            evalWithLocation.call(global,
              '"use strict";\n\n'+
                source
-             , fileName, 1);
+             , fileName, 0);
            return {exports: global.exports,
                    module:  global.module};
          })();
